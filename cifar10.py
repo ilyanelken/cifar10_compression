@@ -176,16 +176,16 @@ def inputs(eval_data):
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
   data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-  images, labels = cifar10_input.inputs(eval_data=eval_data,
-                                        data_dir=data_dir,
-                                        batch_size=FLAGS.batch_size)
+  images, labels = cifar10_input.inputs(eval_data  = eval_data,
+                                        data_dir   = data_dir,
+                                        batch_size = FLAGS.batch_size)
   if FLAGS.use_fp16:
     images = tf.cast(images, tf.float16)
     labels = tf.cast(labels, tf.float16)
   return images, labels
 
 
-def inference(images, conv1_channels=64):
+def inference(images, conv1_channels=64, extract_features=False):
   """Build the CIFAR-10 model.
 
   Args:
@@ -199,6 +199,10 @@ def inference(images, conv1_channels=64):
   # If we only ran this model on a single GPU, we could simplify this function
   # by replacing all instances of tf.get_variable() with tf.Variable().
   #
+
+  conv2_input = None
+  conv2_output = None
+
   # conv1
   with tf.variable_scope('conv1') as scope:
     kernel = _variable_with_weight_decay('weights',
@@ -218,6 +222,8 @@ def inference(images, conv1_channels=64):
   norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
                     name='norm1')
 
+  conv2_input = norm1
+
   # conv2
   with tf.variable_scope('conv2') as scope:
     kernel = _variable_with_weight_decay('weights',
@@ -225,6 +231,7 @@ def inference(images, conv1_channels=64):
                                          stddev=5e-2,
                                          wd=0.0)
     conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
+    conv2_output = conv
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
     pre_activation = tf.nn.bias_add(conv, biases)
     conv2 = tf.nn.relu(pre_activation, name=scope.name)
@@ -268,7 +275,10 @@ def inference(images, conv1_channels=64):
     softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
     _activation_summary(softmax_linear)
 
-  return softmax_linear
+  if extract_features:
+    return softmax_linear, conv2_input, conv2_output
+  else:
+    return softmax_linear
 
 
 def loss(logits, labels):
