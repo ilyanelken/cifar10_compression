@@ -37,11 +37,36 @@ from __future__ import print_function
 from datetime import datetime
 import math
 import time
+import argparse
 
 import numpy as np
 import tensorflow as tf
 
 import cifar10
+
+def parse_args():
+
+    parser = argparse.ArgumentParser(description='CIFAR-10 evaluation',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--conv1-channels',
+                        dest    = 'conv1_channels',
+                        help    = 'number of channels in first convolutional layer',
+                        default = 64,
+                        type    = int)
+
+    args = parser.parse_args()
+
+    return args
+
+# Parse script arguments
+args = parse_args()
+
+NUM_CONV1_CHANNELS = args.conv1_channels
+if NUM_CONV1_CHANNELS == 64:
+    MODEL_DIR = r'./data/models/baseline'
+else:
+    MODEL_DIR = os.path.join(r'./data/models/', NUM_CONV1_CHANNELS)
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -49,7 +74,7 @@ tf.app.flags.DEFINE_string('eval_dir', './data/eval',
                            """Directory where to write event logs.""")
 tf.app.flags.DEFINE_string('eval_data', 'test',
                            """Either 'test' or 'train_eval'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', './data/models/baseline',
+tf.app.flags.DEFINE_string('checkpoint_dir', MODEL_DIR,
                            """Directory where to read model checkpoints.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
                             """How often to run the eval.""")

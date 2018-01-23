@@ -38,16 +38,19 @@ https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10
 Training settings:
 ------------------
 
-> Training set:     
+> Training set:     50,000 images
 
 
-> Compression set:  
+> Compression set:  50,000 images
 
 
-> Test set:         
+> Test set:         10,000 images
 
 
-> Epochs:           
+> Epochs:           64
+
+
+> Batch size:       128
 
 
 > Optimizer:        
@@ -65,11 +68,11 @@ Training settings:
 > Drop-out:         
 
 
-# Original model results:
+# Baseline model results:
 ------------------
 
 > Batch average run time (on CPU):  XXX [ms]
 
 
-> Accuracy:   xx.xxx [%]
+> Accuracy:   85.7 [%]
 

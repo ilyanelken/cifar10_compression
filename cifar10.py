@@ -47,10 +47,10 @@ import cifar10_input
 
 FLAGS = tf.app.flags.FLAGS
 
-# Basic model parameters.
+#model parameters.
 tf.app.flags.DEFINE_integer('batch_size', 128,
                             """Number of images to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', './data',
+tf.app.flags.DEFINE_string('data_dir', './data/train',
                            """Path to the CIFAR-10 data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16', False,
                             """Train the model using fp16.""")
@@ -185,7 +185,7 @@ def inputs(eval_data):
   return images, labels
 
 
-def inference(images):
+def inference(images, conv1_channels=64):
   """Build the CIFAR-10 model.
 
   Args:
@@ -202,11 +202,11 @@ def inference(images):
   # conv1
   with tf.variable_scope('conv1') as scope:
     kernel = _variable_with_weight_decay('weights',
-                                         shape=[5, 5, 3, 8],
+                                         shape=[5, 5, 3, conv1_channels],
                                          stddev=5e-2,
                                          wd=0.0)
     conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
-    biases = _variable_on_cpu('biases', [8], tf.constant_initializer(0.0))
+    biases = _variable_on_cpu('biases', [conv1_channels], tf.constant_initializer(0.0))
     pre_activation = tf.nn.bias_add(conv, biases)
     conv1 = tf.nn.relu(pre_activation, name=scope.name)
     _activation_summary(conv1)
@@ -221,7 +221,7 @@ def inference(images):
   # conv2
   with tf.variable_scope('conv2') as scope:
     kernel = _variable_with_weight_decay('weights',
-                                         shape=[5, 5, 8, 64],
+                                         shape=[5, 5, conv1_channels, 64],
                                          stddev=5e-2,
                                          wd=0.0)
     conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')

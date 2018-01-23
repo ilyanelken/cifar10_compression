@@ -38,14 +38,39 @@ from __future__ import print_function
 
 from datetime import datetime
 import time
+import argparse
 
 import tensorflow as tf
 
 import cifar10
 
+def parse_args():
+
+    parser = argparse.ArgumentParser(description='CIFAR-10 training',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--conv1-channels',
+                        dest    = 'conv1_channels',
+                        help    = 'number of channels in first convolutional layer',
+                        default = 64,
+                        type    = int)
+
+    args = parser.parse_args()
+
+    return args
+
+# Parse script arguments
+args = parse_args()
+
+NUM_CONV1_CHANNELS = args.conv1_channels
+if NUM_CONV1_CHANNELS == 64:
+    MODEL_DIR = r'./data/models/baseline'
+else:
+    MODEL_DIR = os.path.join(r'./data/models/', NUM_CONV1_CHANNELS)
+
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', './data/models/baseline',
+tf.app.flags.DEFINE_string('train_dir', MODEL_DIR,
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 50000,
@@ -69,7 +94,7 @@ def train():
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits = cifar10.inference(images, NUM_CONV1_CHANNELS)
 
     # Calculate loss.
     loss = cifar10.loss(logits, labels)
