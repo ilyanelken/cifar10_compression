@@ -28,6 +28,7 @@ import numpy as np
 import tensorflow as tf
 
 import cifar10
+from DataManager import save_data_to_file
 
 def parse_args():
 
@@ -146,10 +147,7 @@ def eval_once(saver, summary_writer, top_k_op, labels_op,
       conv1_w, conv2_w = sess.run(['conv1/weights:0', 'conv2/weights:0'])
       conv2_in_arr = np.squeeze(np.array(conv2_in_list))
       conv2_out_arr = np.squeeze(np.array(conv2_out_list))
-      np.savez_compressed(OUTPUT_FILE, conv1_weights = conv1_w,
-                                       conv2_weights = conv2_w,
-                                       conv2_input = conv2_in_arr,
-                                       conv2_output = conv2_out_arr)
+      save_data_to_file(OUTPUT_FILE, conv1_w, conv2_w, conv2_in_arr, conv2_out_arr)
       print('Saved %d samples to %s: ' % (conv2_in_arr.shape[0], OUTPUT_FILE))
 
     except Exception as e:  # pylint: disable=broad-except
