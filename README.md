@@ -1,29 +1,74 @@
-# README #
+# Deep Learning Seminar project
+-----------------------------
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Seminar web: http://web.eng.tau.ac.il/deep_learn/
 
-### What is this repository for? ###
+Project members:
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+ - Ilya Nelkenbaum (ilya@nelkenbaum.com)
 
-### How do I get set up? ###
+ - Maxim Roshior   (maximus.1987@gmail.com)
+ 
+ 
+# Project summary:
+----------------
+ 
+ Implement CNN compression method described in:
+ 
+ "ThiNet: A Filter Level Pruning Method for Deep Neural Network Compression"
+ 
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+ Apply the compression method on cifar10 CNN implemented in Google
+ Tensorflow framework.
 
-### Contribution guidelines ###
+# Based on code from:
+-------------------
+https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10
 
-* Writing tests
-* Code review
-* Other guidelines
 
-### Who do I talk to? ###
+# Hardware used:
+--------------
 
-* Repo owner or admin
-* Other community or team contact
+> GPU: GeForce GTX TITAN X
+
+
+> CPU: i7-4770 @ 3.40GHz
+
+
+Training settings:
+------------------
+
+> Training set:     
+
+
+> Compression set:  
+
+
+> Test set:         
+
+
+> Epochs:           
+
+
+> Optimizer:        
+
+
+> Initialization:   
+
+
+> Learning rate:    
+
+
+> Regularization:   
+
+
+> Drop-out:         
+
+
+# Original model results:
+------------------
+
+## Batch average run time (on CPU):  XXX [ms]
+
+## Accuracy:   xx.xxx [%]
+
