@@ -68,7 +68,8 @@ Training settings:
 # Original model results:
 ------------------
 
-## Batch average run time (on CPU):  XXX [ms]
+> Batch average run time (on CPU):  XXX [ms]
 
-## Accuracy:   xx.xxx [%]
+
+> Accuracy:   xx.xxx [%]
 
