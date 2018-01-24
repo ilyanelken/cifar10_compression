@@ -38,6 +38,7 @@ from __future__ import print_function
 
 from datetime import datetime
 import time
+import os
 import argparse
 
 import tensorflow as tf
@@ -66,7 +67,7 @@ NUM_CONV1_CHANNELS = args.conv1_channels
 if NUM_CONV1_CHANNELS == 64:
     MODEL_DIR = r'./data/models/baseline'
 else:
-    MODEL_DIR = os.path.join(r'./data/models/', NUM_CONV1_CHANNELS)
+    MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
 
 FLAGS = tf.app.flags.FLAGS
 

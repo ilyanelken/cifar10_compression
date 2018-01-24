@@ -19,6 +19,11 @@ def load_data_from_file(in_file):
         data_dict['conv2_input']   = data['conv2_input']
         data_dict['conv2_output']  = data['conv2_output']
 
+    print('Conv1 weights: ', data_dict['conv1_weights'].shape)
+    print('Conv2 input: ',   data_dict['conv2_input'].shape)
+    print('Conv2 weights: ', data_dict['conv2_weights'].shape)
+    print('Conv2 output: ',  data_dict['conv2_output'].shape)
+
     print('Loaded %d samples' % (data_dict['conv2_input'].shape[0]))
 
     return data_dict

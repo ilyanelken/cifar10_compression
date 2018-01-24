@@ -1,10 +1,18 @@
 # built-in
+from time import time
 
 # 3rd party
 import numpy as np
 
 # misc
-import config
+
+# Measuring performance via matlab style: tic() and toc()
+_tstart_stack = []
+def tic():
+    _tstart_stack.append(time())
+def toc():
+    delta_t = 1000.0 * float(time()-_tstart_stack.pop())
+    return delta_t
 
 class Thinet:
 
@@ -16,10 +24,21 @@ class Thinet:
         :param rate:        desired compression rate [0 <= rate <= 1.0]
         """
         # Input data
-        self.input      = input_map
         self.weights    = weights
         self.output     = output_map
         self.rate       = rate
+
+        # Calculate padding for input map
+        if input_map.shape[1] > output_map.shape[1]:
+            self.input = input_map
+        else:
+            pad = (weights.shape[0] - 1) // 2
+            h = input_map.shape[1] + 2 * pad
+            w = input_map.shape[2] + 2 * pad
+            c = input_map.shape[3]
+            batch_size = input_map.shape[0]
+            self.input = np.zeros((batch_size, h, w, c), dtype=input_map.dtype)
+            self.input[:, pad:-pad, pad:-pad, :] = input_map
 
         # Comression results placeholders
         self.keep_filters = None
@@ -78,6 +97,26 @@ class Thinet:
                 kernel = np.expand_dims(np.squeeze(weights[:, :, j, c]), axis=0)
                 roi = input_map[:, y - offset:y + offset + 1, x - offset:x + offset + 1, j]
                 T_sum += np.sum(roi * kernel, axis=(1, 2))
+            res += np.sum(np.power(T_sum, 2))
+
+        return res
+
+    def __compute_eq6_fast_ultra(self, x_idx, channels):
+
+        weights = self.weights
+        input_map = self.input
+
+        assert (weights.shape[0] == weights.shape[1]), "invalid kernel size"
+
+        res = 0
+        offset = weights.shape[0] // 2
+
+        for p in x_idx:
+            x, y, c = p
+            T_sum = np.zeros((input_map.shape[0],))
+            kernel = np.expand_dims(weights[:, :, channels, c], axis=0)
+            roi = input_map[:, y - offset:y + offset + 1, x - offset:x + offset + 1, channels]
+            T_sum = np.sum(roi * kernel, axis=(1, 2, 3))
             res += np.sum(np.power(T_sum, 2))
 
         return res
@@ -166,27 +205,32 @@ class Thinet:
 
         y_idx = Thinet.get_random_coords(W2, H2, C2, sample_points)
         x_idx = np.copy(y_idx)
-        x_idx[:, 0:2] += 1  # corresponding input (x, y) coordinates (assumed kernel size: 3x3)
+        x_idx[:, 0:2] += 2  # corresponding input (x, y) coordinates (assumed kernel size: 5x5)
+
+        run_time = 0
 
         T = []                # list of filters to prune
         I = list(range(C1))   # list of remaining filters
         while len(T) < round(C1 * (1 - self.rate)):
             min_value = np.inf
+            tic()
             for i in I:
                 tmpT = list(T)
                 tmpT.append(i)
-
-                value = self.__compute_eq6_fast(x_idx, tmpT)
-
+ 
+                value = self.__compute_eq6_fast_ultra(x_idx, tmpT)
                 #value_fast = self.__compute_eq6_fast(x_idx, tmpT)
-                #if value != value_fast:
+                #if np.abs(value - value_fast) > 1:
                 #    raise ValueError("%f != %f" % (value, value_fast))
+                #print("%f ;  %f" % (value, value_fast))
 
                 if value < min_value:
                     min_value = value
                     min_i = i
             I.remove(min_i)
             T.append(min_i)
+            run_time += toc()
+            print('Filters prunned: %d in %.3f [s]' % (len(T), run_time/1000.0))
 
         # Minimize reconstruction error
         W_hat = self.__best_filters_scales(x_idx, y_idx, I)
@@ -198,56 +242,14 @@ class Thinet:
         self.weights_wo_reconst = W_wo_reconst
         self.weights_reconst = W_reconst
 
-        print("Filters to preserve: ", I)
+        #print("Filters to preserve: ", I)
 
-    def compress_callback(self, data_dict, params, with_reconstruction):
-        """
-        :param data_dict:  all network variables
-        :param params:     network variables to remove in the following format:
+    def save_data_to_file(self, output_file):
 
-               params = { 'remove' : [('conv1',  'weights', 3),
-                                      ('conv1',  'biases',  0),
-                                      ('PReLU1', 'alpha',   0)],
-                           'update' : ('conv2', 'weights') }
-        """
+        data_dict = dict()
+        data_dict['keep_filters']       = self.keep_filters
+        data_dict['remove_filters']     = self.remove_filters
+        data_dict['weights_wo_reconst'] = self.weights_wo_reconst
+        data_dict['weights_reconst']    = self.weights_reconst
 
-        print('\nRemoved parameters:\n')
-        for rec in params['remove']:
-            layer, key, axis = rec
-            print("\t[%s][%s] %s --> " % (
-                  layer, key, str(data_dict[layer][key].shape)), end="")
-            data_dict[layer][key] = np.delete(data_dict[layer][key], self.remove_filters, axis=axis)
-            print("%s" % str(data_dict[layer][key].shape))
-
-        print('\nUpdated parameters:\n')
-        layer, key = params['update']
-        print("\t[%s][%s] %s --> " % (
-              layer, key, str(data_dict[layer][key].shape)), end="")
-        if with_reconstruction:
-            data_dict[layer][key] = self.weights_reconst
-        else:
-            data_dict[layer][key] = self.weights_wo_reconst
-        print(data_dict[layer][key].shape)
-
-        print('')
-
-
-    def update_model(self, pnet_orig_path, pnet_compressed_path, layer, with_reconstruction=True):
-
-        if self.keep_filters is None:
-            print("Please run compress() method first")
-            return
-
-        if layer not in config.PNET_LAYERS_PRUNE:
-            print("Invalid layer name: %s")
-            return
-
-        data_dict = np.load(pnet_orig_path, encoding='latin1').item()
-
-        # data dict is updated inplace
-        self.compress_callback(data_dict,
-                               config.PNET_LAYERS_PRUNE[layer],
-                               with_reconstruction)
-
-        np.save(pnet_compressed_path, data_dict)
-
+        np.save(output_file, data_dict)

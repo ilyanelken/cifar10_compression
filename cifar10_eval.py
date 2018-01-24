@@ -35,6 +35,7 @@ from __future__ import division
 from __future__ import print_function
 
 from datetime import datetime
+import os
 import math
 import time
 import argparse
@@ -66,7 +67,7 @@ NUM_CONV1_CHANNELS = args.conv1_channels
 if NUM_CONV1_CHANNELS == 64:
     MODEL_DIR = r'./data/models/baseline'
 else:
-    MODEL_DIR = os.path.join(r'./data/models/', NUM_CONV1_CHANNELS)
+    MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -147,7 +148,7 @@ def evaluate():
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits = cifar10.inference(images, NUM_CONV1_CHANNELS)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)
