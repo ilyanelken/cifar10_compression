@@ -53,19 +53,19 @@ Training settings:
 > Batch size:       128
 
 
-> Optimizer:        
+> Optimizer:        SGD
 
 
-> Initialization:   
+> Initialization:   truncated random distribution with std=5e-2 for conv and std=0.04 for fully connected
 
 
-> Learning rate:    
+> Learning rate:    initial 0.1 with exponential decay (factor: 0.1)
 
 
-> Regularization:   
+> Regularization:   weight decay 0.004 for fully connected layers only
 
 
-> Drop-out:         
+> Drop-out:         no dropout 
 
 
 # Baseline model results:
