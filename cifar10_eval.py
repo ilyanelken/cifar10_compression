@@ -85,6 +85,19 @@ tf.app.flags.DEFINE_boolean('run_once', True,
                          """Whether to run eval only once.""")
 
 
+def get_graph_num_params():
+
+    total_parameters = 0
+
+    for variable in tf.trainable_variables():
+        shape = variable.get_shape()
+        variable_parameters = 1
+        for dim in shape:
+            variable_parameters *= dim.value
+        total_parameters += variable_parameters
+
+    return total_parameters
+
 def eval_once(saver, summary_writer, top_k_op, summary_op):
   """Run Eval once.
 
@@ -106,6 +119,8 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
     else:
       print('No checkpoint file found')
       return
+
+    print("Total number of parameters: %d" % get_graph_num_params())
 
     # Start the queue runners.
     coord = tf.train.Coordinator()
