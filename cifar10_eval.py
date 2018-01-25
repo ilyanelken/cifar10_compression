@@ -56,6 +56,12 @@ def parse_args():
                         default = 64,
                         type    = int)
 
+    parser.add_argument('--save-file',
+                        dest    = 'save_file',
+                        help    = 'model weights in *.npy file',
+                        default = None,
+                        type    = str)
+
     args = parser.parse_args()
 
     return args
@@ -63,6 +69,7 @@ def parse_args():
 # Parse script arguments
 args = parse_args()
 
+MODEL_SAVE_FILE = args.save_file
 NUM_CONV1_CHANNELS = args.conv1_channels
 if NUM_CONV1_CHANNELS == 64:
     MODEL_DIR = r'./data/models/baseline'
@@ -121,6 +128,36 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
       return
 
     print("Total number of parameters: %d" % get_graph_num_params())
+
+    if MODEL_SAVE_FILE is not None:
+        out = sess.run(['conv1/weights:0',           # (5, 5, 3, 64)
+                        'conv1/biases:0',            # (64,)
+                        'conv2/weights:0',           # (5, 5, 64, 64)
+                        'conv2/biases:0',            # (64,)
+                        'local3/weights:0',          # (2304, 384)
+                        'local3/biases:0',           # (384,)
+                        'local4/weights:0',          # (384, 192)
+                        'local4/biases:0',           # (192,)
+                        'softmax_linear/weights:0',  # (192, 10)
+                        'softmax_linear/biases:0'])  # (10,)
+        data_dict = dict()
+        data_dict['conv1'] = dict()
+        data_dict['conv1']['weights']          = out[0]
+        data_dict['conv1']['biases']           = out[1]
+        data_dict['conv2'] = dict()
+        data_dict['conv2']['weights']          = out[2]
+        data_dict['conv2']['biases']           = out[3]
+        data_dict['local3'] = dict()
+        data_dict['local3']['weights']         = out[4]
+        data_dict['local3']['biases']          = out[5]
+        data_dict['local4'] = dict()
+        data_dict['local4']['weights']         = out[6]
+        data_dict['local4']['biases']          = out[7]
+        data_dict['softmax_linear'] = dict()
+        data_dict['softmax_linear']['weights'] = out[8]
+        data_dict['softmax_linear']['biases']  = out[9]
+
+        np.save(MODEL_SAVE_FILE, data_dict)
 
     # Start the queue runners.
     coord = tf.train.Coordinator()
