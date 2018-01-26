@@ -332,7 +332,8 @@ def _add_loss_summaries(total_loss):
   return loss_averages_op
 
 
-def train(total_loss, global_step):
+def train(total_loss, global_step,
+          initial_learning_rate=INITIAL_LEARNING_RATE):
   """Train CIFAR-10 model.
 
   Create an optimizer and apply to all trainable variables. Add moving
@@ -350,7 +351,7 @@ def train(total_loss, global_step):
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
   # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+  lr = tf.train.exponential_decay(initial_learning_rate,
                                   global_step,
                                   decay_steps,
                                   LEARNING_RATE_DECAY_FACTOR,

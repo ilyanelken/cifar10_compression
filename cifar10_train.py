@@ -37,6 +37,7 @@ from __future__ import division
 from __future__ import print_function
 
 from datetime import datetime
+import numpy as np
 import time
 import os
 import argparse
@@ -56,6 +57,30 @@ def parse_args():
                         default = 64,
                         type    = int)
 
+    parser.add_argument('--initial-lr',
+                        dest    = 'initial_lr',
+                        help    = 'initial learning rate for fine tunning',
+                        default = 0.01,
+                        type    = float)
+
+    parser.add_argument('--fine-tune-steps',
+                        dest    = 'fine_tune_steps',
+                        help    = 'number of steps for fine tunning',
+                        default = 12500,
+                        type    = int)
+
+    parser.add_argument('--load-file',
+                        dest    = 'load_file',
+                        help    = 'file with pretrained model',
+                        default = None,
+                        type    = str)
+
+    parser.add_argument('--save-file',
+                        dest    = 'save_file',
+                        help    = 'file with trained model',
+                        default = None,
+                        type    = str)
+
     args = parser.parse_args()
 
     return args
@@ -63,6 +88,10 @@ def parse_args():
 # Parse script arguments
 args = parse_args()
 
+INITIAL_LR = args.initial_lr
+FINE_TUNE_STEPS = args.fine_tune_steps
+MODEL_SAVE_FILE = args.save_file
+MODEL_LOAD_FILE = args.load_file
 NUM_CONV1_CHANNELS = args.conv1_channels
 if NUM_CONV1_CHANNELS == 64:
     MODEL_DIR = r'./data/models/baseline'
@@ -141,12 +170,113 @@ def train():
         mon_sess.run(train_op)
 
 
+def train_custom():
+  """Train CIFAR-10 for a number of steps."""
+  with tf.Graph().as_default():
+    global_step = tf.train.get_or_create_global_step()
+
+    # Get images and labels for CIFAR-10.
+    # Force input pipeline to CPU:0 to avoid operations sometimes ending up on
+    # GPU and resulting in a slow down.
+    with tf.device('/cpu:0'):
+      images, labels = cifar10.distorted_inputs()
+
+    # Build a Graph that computes the logits predictions from the
+    # inference model.
+    logits = cifar10.inference(images, NUM_CONV1_CHANNELS)
+
+    # Calculate loss.
+    loss = cifar10.loss(logits, labels)
+
+    # Build a Graph that trains the model with one batch of examples and
+    # updates the model parameters.
+    train_op = cifar10.train(loss, global_step, initial_learning_rate=INITIAL_LR)
+
+    with tf.Session(config=tf.ConfigProto(log_device_placement=FLAGS.log_device_placement)) as sess:
+
+        init_op = tf.global_variables_initializer()
+        sess.run(init_op)
+
+        # begin enqueue thread
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        data_dict = np.load(MODEL_LOAD_FILE, encoding='latin1').item()
+
+        for scope in ['conv1', 'conv2', 'local3', 'local4', 'softmax_linear']:
+            with tf.variable_scope(scope, reuse=True):
+
+                w = tf.get_variable('weights')
+                b = tf.get_variable('biases')
+
+                w_assign_op = w.assign(data_dict[scope]['weights'])
+                b_assign_op = b.assign(data_dict[scope]['biases'])
+
+                sess.run([w_assign_op, b_assign_op])
+
+        step = 0
+        start_time = time.time()
+        while step < FINE_TUNE_STEPS:
+
+          _, loss_value = sess.run([train_op, loss])
+
+          if step % FLAGS.log_frequency == 0:
+            current_time = time.time()
+            duration = current_time - start_time
+            start_time = current_time
+
+            examples_per_sec = FLAGS.log_frequency * FLAGS.batch_size / duration
+            sec_per_batch = float(duration / FLAGS.log_frequency)
+
+            format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)')
+            print (format_str % (datetime.now(), step, loss_value, examples_per_sec, sec_per_batch))
+
+          step += 1
+
+        if MODEL_SAVE_FILE:
+          out = sess.run(['conv1/weights:0',           # (5, 5, 3, 64)
+                          'conv1/biases:0',            # (64,)
+                          'conv2/weights:0',           # (5, 5, 64, 64)
+                          'conv2/biases:0',            # (64,)
+                          'local3/weights:0',          # (2304, 384)
+                          'local3/biases:0',           # (384,)
+                          'local4/weights:0',          # (384, 192)
+                          'local4/biases:0',           # (192,)
+                          'softmax_linear/weights:0',  # (192, 10)
+                          'softmax_linear/biases:0'])  # (10,)
+
+          data_dict = dict()
+          data_dict['conv1'] = dict()
+          data_dict['conv1']['weights']          = out[0]
+          data_dict['conv1']['biases']           = out[1]
+          data_dict['conv2'] = dict()
+          data_dict['conv2']['weights']          = out[2]
+          data_dict['conv2']['biases']           = out[3]
+          data_dict['local3'] = dict()
+          data_dict['local3']['weights']         = out[4]
+          data_dict['local3']['biases']          = out[5]
+          data_dict['local4'] = dict()
+          data_dict['local4']['weights']         = out[6]
+          data_dict['local4']['biases']          = out[7]
+          data_dict['softmax_linear'] = dict()
+          data_dict['softmax_linear']['weights'] = out[8]
+          data_dict['softmax_linear']['biases']  = out[9]
+
+          np.save(MODEL_SAVE_FILE, data_dict)
+
+        coord.request_stop()
+        coord.join(threads)
+
+
 def main(argv=None):  # pylint: disable=unused-argument
   cifar10.maybe_download_and_extract()
   if tf.gfile.Exists(FLAGS.train_dir):
     tf.gfile.DeleteRecursively(FLAGS.train_dir)
   tf.gfile.MakeDirs(FLAGS.train_dir)
-  train()
+  if MODEL_LOAD_FILE is None:
+    train()
+  else:
+    train_custom()
 
 
 if __name__ == '__main__':
