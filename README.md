@@ -47,7 +47,7 @@ Training settings:
 > Test set:         10,000 images
 
 
-> Epochs:           64
+> Epochs:           128
 
 
 > Batch size:       128
