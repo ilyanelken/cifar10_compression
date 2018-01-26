@@ -253,3 +253,69 @@ class Thinet:
         data_dict['weights_reconst']    = self.weights_reconst
 
         np.save(output_file, data_dict)
+
+    def load_data_from_file(self, input_file):
+
+        data_dict = np.load(input_file).item()
+
+        self.keep_filters       = data_dict['keep_filters']
+        self.remove_filters     = data_dict['remove_filters']
+        self.weights_wo_reconst = data_dict['weights_wo_reconst']
+        self.weights_reconst    = data_dict['weights_reconst']
+
+        print('Keep filters: %d : ' % len(self.keep_filters))
+        print('Remove filters: %d : ' % len(self.remove_filters))
+        print('Weights wo reconstruction: ', self.weights_wo_reconst.shape)
+        print('Weights with reconstruction: ', self.weights_reconst.shape)
+
+
+    def compress_callback(self, data_dict, params, with_reconstruction):
+        """
+        :param data_dict:  all network variables
+        :param params:     network variables to remove in the following format:
+
+               params = { 'remove' : [('conv1',  'weights', 3),
+                                      ('conv1',  'biases',  0),
+                           'update' : ('conv2', 'weights') }
+        """
+
+        print('\nRemoved parameters:\n')
+        for rec in params['remove']:
+            layer, key, axis = rec
+            print("\t[%s][%s] %s --> " % (
+                  layer, key, str(data_dict[layer][key].shape)), end="")
+            data_dict[layer][key] = np.delete(data_dict[layer][key], self.remove_filters, axis=axis)
+            print("%s" % str(data_dict[layer][key].shape))
+
+        print('\nUpdated parameters:\n')
+        layer, key = params['update']
+        print("\t[%s][%s] %s --> " % (
+              layer, key, str(data_dict[layer][key].shape)), end="")
+        if with_reconstruction:
+            data_dict[layer][key] = self.weights_reconst
+        else:
+            data_dict[layer][key] = self.weights_wo_reconst
+        print(data_dict[layer][key].shape)
+
+        print('')
+
+
+    def update_model(self, model_file_in, model_file_out, with_reconstruction=False):
+
+        update_dict = {
+                       'remove' : [('conv1',  'weights', 3),
+                                   ('conv1',  'biases',  0)],
+                       'update' : ('conv2', 'weights')
+                      }
+
+
+        if self.keep_filters is None:
+            print("Please run compress() method first")
+            return
+
+        data_dict = np.load(model_file_in, encoding='latin1').item()
+
+        # data dict is updated inplace
+        self.compress_callback(data_dict, update_dict, with_reconstruction)
+
+        np.save(model_file_out, data_dict)

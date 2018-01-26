@@ -56,6 +56,12 @@ def parse_args():
                         default = 64,
                         type    = int)
 
+    parser.add_argument('--load-file',
+                        dest    = 'load_file',
+                        help    = 'numpy file to load model from',
+                        default = None,
+                        type    = str)
+
     parser.add_argument('--save-file',
                         dest    = 'save_file',
                         help    = 'model weights in *.npy file',
@@ -69,6 +75,7 @@ def parse_args():
 # Parse script arguments
 args = parse_args()
 
+MODEL_LOAD_FILE = args.load_file
 MODEL_SAVE_FILE = args.save_file
 NUM_CONV1_CHANNELS = args.conv1_channels
 if NUM_CONV1_CHANNELS == 64:
@@ -115,19 +122,37 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
     summary_op: Summary op.
   """
   with tf.Session() as sess:
-    ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-      # Restores from checkpoint
-      saver.restore(sess, ckpt.model_checkpoint_path)
-      # Assuming model_checkpoint_path looks something like:
-      #   /my-favorite-path/cifar10_train/model.ckpt-0,
-      # extract global_step from it.
-      global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
-    else:
-      print('No checkpoint file found')
-      return
+    if MODEL_LOAD_FILE is None:
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+          # Restores from checkpoint
+
+          saver.restore(sess, ckpt.model_checkpoint_path)
+          # Assuming model_checkpoint_path looks something like:
+          #   /my-favorite-path/cifar10_train/model.ckpt-0,
+          # extract global_step from it.
+          global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+        else:
+          print('No checkpoint file found')
+          return
 
     print("Total number of parameters: %d" % get_graph_num_params())
+
+    if MODEL_LOAD_FILE is not None:
+
+        data_dict = np.load(MODEL_LOAD_FILE, encoding='latin1').item()
+
+        for scope in ['conv1', 'conv2', 'local3', 'local4', 'softmax_linear']:
+            with tf.variable_scope(scope, reuse=True):
+
+                w = tf.get_variable('weights')
+                b = tf.get_variable('biases')
+
+                w_assign_op = w.assign(data_dict[scope]['weights'])
+                b_assign_op = b.assign(data_dict[scope]['biases'])
+
+                sess.run([w_assign_op, b_assign_op])
+
 
     if MODEL_SAVE_FILE is not None:
         out = sess.run(['conv1/weights:0',           # (5, 5, 3, 64)
@@ -183,7 +208,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
       summary = tf.Summary()
       summary.ParseFromString(sess.run(summary_op))
       summary.value.add(tag='Precision @ 1', simple_value=precision)
-      summary_writer.add_summary(summary, global_step)
+      #summary_writer.add_summary(summary, global_step)
     except Exception as e:  # pylint: disable=broad-except
       coord.request_stop(e)
 
