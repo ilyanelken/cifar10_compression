@@ -35,12 +35,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description='CIFAR-10 feature extraction',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--conv1-channels',
-                        dest    = 'conv1_channels',
-                        help    = 'number of channels in first convolutional layer',
-                        default = 64,
-                        type    = int)
-
     parser.add_argument('--samples-per_category',
                         dest    = 'samples_per_category',
                         help    = 'number of samples to take in count per category',
@@ -63,11 +57,7 @@ args = parse_args()
 OUTPUT_FILE = args.output_file
 SAMPLES_PER_CATEGORY = args.samples_per_category
 
-NUM_CONV1_CHANNELS = args.conv1_channels
-if NUM_CONV1_CHANNELS == 64:
-    MODEL_DIR = r'./data/models/baseline'
-else:
-    MODEL_DIR = os.path.join(r'./data/models/', NUM_CONV1_CHANNELS)
+MODEL_DIR = r'./data/models/baseline'
 
 FLAGS = tf.app.flags.FLAGS
 

@@ -1,8 +1,8 @@
 import numpy as np
 
-def save_data_to_file(out_file, conv1_w, conv2_w, conv2_in_arr, conv2_out_arr):
+def save_data_to_file(output_file, conv1_w, conv2_w, conv2_in_arr, conv2_out_arr):
 
-    np.savez_compressed(OUTPUT_FILE, conv1_weights = conv1_w,
+    np.savez_compressed(output_file, conv1_weights = conv1_w,
                                      conv2_weights = conv2_w,
                                      conv2_input = conv2_in_arr,
                                      conv2_output = conv2_out_arr)

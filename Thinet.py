@@ -28,18 +28,17 @@ class Thinet:
         self.output     = output_map
         self.rate       = rate
 
-        self.input = input_map
-        ## Calculate padding for input map
-        #if input_map.shape[1] > output_map.shape[1]:
-        #    self.input = input_map
-        #else:
-        #    pad = (weights.shape[0] - 1) // 2
-        #    h = input_map.shape[1] + 2 * pad
-        #    w = input_map.shape[2] + 2 * pad
-        #    c = input_map.shape[3]
-        #    batch_size = input_map.shape[0]
-        #    self.input = np.zeros((batch_size, h, w, c), dtype=input_map.dtype)
-        #    self.input[:, pad:-pad, pad:-pad, :] = input_map
+        # Calculate padding for input map
+        if input_map.shape[1] > output_map.shape[1]:
+            self.input = input_map
+        else:
+            pad = (weights.shape[0] - 1) // 2
+            h = input_map.shape[1] + 2 * pad
+            w = input_map.shape[2] + 2 * pad
+            c = input_map.shape[3]
+            batch_size = input_map.shape[0]
+            self.input = np.zeros((batch_size, h, w, c), dtype=input_map.dtype)
+            self.input[:, pad:-pad, pad:-pad, :] = input_map
 
         # Comression results placeholders
         self.keep_filters = None
@@ -204,10 +203,9 @@ class Thinet:
         C1 = self.weights.shape[2]
         C2 = self.weights.shape[3]
 
-        y_idx = Thinet.get_random_coords(W2 - 4, H2 - 4, C2, sample_points)
-        y_idx[:, 0:2] += 2
+        y_idx = Thinet.get_random_coords(W2, H2, C2, sample_points)
         x_idx = np.copy(y_idx)
-        #x_idx[:, 0:2] += 2  # corresponding input (x, y) coordinates (assumed kernel size: 5x5)
+        x_idx[:, 0:2] += 2  # corresponding input (x, y) coordinates (assumed kernel size: 5x5)
 
         run_time = 0
 
