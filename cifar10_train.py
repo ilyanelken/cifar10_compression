@@ -270,10 +270,10 @@ def train_custom():
 
 def main(argv=None):  # pylint: disable=unused-argument
   cifar10.maybe_download_and_extract()
-  if tf.gfile.Exists(FLAGS.train_dir):
-    tf.gfile.DeleteRecursively(FLAGS.train_dir)
-  tf.gfile.MakeDirs(FLAGS.train_dir)
   if MODEL_LOAD_FILE is None:
+    if tf.gfile.Exists(FLAGS.train_dir):
+      tf.gfile.DeleteRecursively(FLAGS.train_dir)
+    tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
   else:
     train_custom()
