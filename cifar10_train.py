@@ -93,10 +93,7 @@ FINE_TUNE_STEPS = args.fine_tune_steps
 MODEL_SAVE_FILE = args.save_file
 MODEL_LOAD_FILE = args.load_file
 NUM_CONV1_CHANNELS = args.conv1_channels
-if NUM_CONV1_CHANNELS == 64:
-    MODEL_DIR = r'./data/models/baseline'
-else:
-    MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
+MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
 
 FLAGS = tf.app.flags.FLAGS
 

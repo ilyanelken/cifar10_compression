@@ -57,7 +57,7 @@ args = parse_args()
 OUTPUT_FILE = args.output_file
 SAMPLES_PER_CATEGORY = args.samples_per_category
 
-MODEL_DIR = r'./data/models/baseline'
+MODEL_DIR = r'./data/models/64'
 
 FLAGS = tf.app.flags.FLAGS
 

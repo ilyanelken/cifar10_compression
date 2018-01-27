@@ -78,10 +78,7 @@ args = parse_args()
 MODEL_LOAD_FILE = args.load_file
 MODEL_SAVE_FILE = args.save_file
 NUM_CONV1_CHANNELS = args.conv1_channels
-if NUM_CONV1_CHANNELS == 64:
-    MODEL_DIR = r'./data/models/baseline'
-else:
-    MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
+MODEL_DIR = os.path.join(r'./data/models/', str(NUM_CONV1_CHANNELS))
 
 FLAGS = tf.app.flags.FLAGS
 
